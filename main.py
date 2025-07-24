@@ -64,13 +64,14 @@ client = MyClient()
 @app_commands.describe(
     wiadomosc="Wklej tekst z eventami, może mieć wiele linii")
 async def curry(interaction: discord.Interaction, wiadomosc: str):
-    lines = wiadomosc.splitlines()
+    lines = re.split(r'\n|\r\n', wiadomosc)  # podział na linie (również Windowsowe)
     odpowiedzi = []
     for line in lines:
         content = re.sub(r"^\d{1,2}:\d{2}\s+", "", line)
         odp = find_response(content)
         if odp:
             odpowiedzi.append(odp)
+
     if not odpowiedzi:
         await interaction.response.send_message(
             "Nie znaleziono żadnych pasujących informacji.", ephemeral=True)
@@ -102,3 +103,6 @@ if __name__ == "__main__":
     keep_alive()
     TOKEN = os.getenv("DISCORD_TOKEN")
     client.run(TOKEN)
+    
+    
+    
