@@ -1,12 +1,10 @@
 import discord
-from discord import app_commands
 from discord.ext import commands
 import re
 import os
-from flask import Flask
-from threading import Thread
 
 intents = discord.Intents.default()
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 triggers = {
     "fiery fury gate has opened": "🔥 Fury Gates is active.",
@@ -48,61 +46,24 @@ def find_response(text: str) -> str | None:
             return response
     return None
 
-class MyClient(commands.Bot):
-    def __init__(self):
-        super().__init__(command_prefix="!", intents=intents)
-        self.tree = app_commands.CommandTree(self)
-
-    async def setup_hook(self):
-        await self.tree.sync()
-
-client = MyClient()
-
-@client.tree.command(
-    name="curry",
-    description="Wpisz tekst z eventami Tibii, aby otrzymać statusy")
-@app_commands.describe(
-    wiadomosc="Wklej tekst z eventami, może mieć wiele linii")
-async def curry(interaction: discord.Interaction, wiadomosc: str):
-    lines = re.split(r'\n|\r\n', wiadomosc)  # podział na linie (również Windowsowe)
+@bot.command()
+async def curry(ctx, *, wiadomosc: str):
+    lines = wiadomosc.splitlines()
     odpowiedzi = []
     for line in lines:
         content = re.sub(r"^\d{1,2}:\d{2}\s+", "", line)
         odp = find_response(content)
         if odp:
             odpowiedzi.append(odp)
-
     if not odpowiedzi:
-        await interaction.response.send_message(
-            "Nie znaleziono żadnych pasujących informacji.", ephemeral=True)
+        await ctx.send("Nie znaleziono żadnych pasujących informacji.")
     else:
-        await interaction.response.send_message("\n".join(odpowiedzi))
+        await ctx.send("\n".join(odpowiedzi))
 
-@client.event
+@bot.event
 async def on_ready():
-    print(f"Zalogowano jako {client.user}")
-
-# --- keep_alive start ---
-
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "Bot działa!"
-
-def run():
-    app.run(host='0.0.0.0', port=8080)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
-
-# --- keep_alive end ---
+    print(f"Zalogowano jako {bot.user}")
 
 if __name__ == "__main__":
-    keep_alive()
     TOKEN = os.getenv("DISCORD_TOKEN")
-    client.run(TOKEN)
-    
-    
-    
+    bot.run(TOKEN)
